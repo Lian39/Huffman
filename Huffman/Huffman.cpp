@@ -92,8 +92,8 @@ void writeFile(std::string path, std::vector<bool> &encodedData)
 
         for (int j = 0; j < 8; ++j)
         {
-            if (encodedData[i])
-                ch |= 1 << j;
+            if (encodedData[i * 8 + j])
+                ch |= (1 << j);
         }
         outFile.write((char *)&ch, sizeof(ch));
     }
@@ -120,8 +120,8 @@ void compress(std::string inputPath, std::string outPath)
     // for (auto pair : codesTable)
     //     std::cout << pair.first << "\t" << pair.second << "\n";
 
-    // for (auto i : encodedData)
-    //     std::cout << i;
+    for (auto i : encodedData)
+        std::cout << i;
 
     writeFile(outPath, encodedData);
 }
