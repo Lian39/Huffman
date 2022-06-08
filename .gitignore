@@ -1,0 +1,6 @@
+.vscode
+.DS_Store
+Huffman.dSYM
+Huffman/Huffman
+Test.cpp
+test.txt
