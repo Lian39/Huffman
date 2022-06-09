@@ -198,20 +198,18 @@ void compress(const std::string inputPath, const std::string outPath)
 {
     std::string data;
     readFile(inputPath, data);
-
     std::multimap<int, char> freqsTable;
-    createFreqsTable(data, freqsTable);
-
     std::priority_queue<Node *, std::vector<Node *>, comp> pq;
+    std::vector<bool> encodedData;
+    std::multimap<char, std::string> codesTable;
+
+    createFreqsTable(data, freqsTable);
     buildTree(pq, freqsTable);
+
     Node *root = pq.top();
 
-    std::multimap<char, std::string> codesTable;
     createCodesTable(root, "", codesTable);
-
-    std::vector<bool> encodedData;
     encode(data, codesTable, encodedData);
-
     writeFile(outPath, encodedData, root);
 }
 
@@ -259,7 +257,7 @@ int main(int argv, char *argc[])
                 inputFlag = false;
                 continue;
             }
-            if (strcmp(argc[i], "--files") == 0)
+            if (strcmp(argc[i], "--file") == 0)
             {
                 inputFlag = true;
                 outFlag = false;
@@ -286,14 +284,6 @@ int main(int argv, char *argc[])
             std::cout << "Invalid type" << "\n";
         }
     }
-
-    // std::string outPath = "./test.huff";
-    // std::string inputPath = "./test.txt";
-    // compress(inputPath, outPath);
-
-    // outPath = "./out.txt";
-    // inputPath = "./test.huff";
-    // decompress(inputPath, outPath);
 
     return 0;
 }
