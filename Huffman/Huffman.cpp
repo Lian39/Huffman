@@ -13,15 +13,14 @@ void readFile(std::string path, std::string &data)
     while (!inputFile.eof())
     {
         char ch;
-
         inputFile.read(&ch, sizeof(ch));
         data += ch;
     }
 
-    data.pop_back();
+    // data.pop_back();
 }
 
-void createFreqsTable(std::string &data, std::multimap<int, char> &freqsTable)
+void createFreqsTable(const std::string data, std::multimap<int, char> &freqsTable)
 {
     std::vector<int> freqs(0x100);
 
@@ -37,7 +36,7 @@ void createFreqsTable(std::string &data, std::multimap<int, char> &freqsTable)
     }
 }
 
-void buildTree(std::priority_queue<Node *, std::vector<Node *>, comp> &pq, std::multimap<int, char> &freqsTable)
+void buildTree(std::priority_queue<Node *, std::vector<Node *>, comp> &pq, const std::multimap<int, char> freqsTable)
 {
 
     for (auto pair : freqsTable)
@@ -54,8 +53,8 @@ void buildTree(std::priority_queue<Node *, std::vector<Node *>, comp> &pq, std::
         pq.pop();
 
         int freqsSum = left->freq + right->freq;
-        Node *newNode = new Node('\0', freqsSum, left, right);
-        pq.push(newNode);
+        Node *node = new Node('\0', freqsSum, left, right);
+        pq.push(node);
     }
 }
 
@@ -71,7 +70,7 @@ void createCodesTable(Node *node, std::string code, std::multimap<char, std::str
     createCodesTable(node->right, code + "1", codesTable);
 }
 
-void encode(std::string &data, std::multimap<char, std::string> &codesTable, std::vector<bool> &encodedData)
+void encode(std::string &data, const std::multimap<char, std::string> codesTable, std::vector<bool> &encodedData)
 {
     for (auto ch : data)
     {
@@ -82,9 +81,95 @@ void encode(std::string &data, std::multimap<char, std::string> &codesTable, std
     }
 }
 
-void writeFile(std::string path, std::vector<bool> &encodedData)
+void decode(Node *root, const std::vector<bool> encodedData, std::string &decodedData)
 {
-    std::ofstream outFile(path, std::ios::binary);
+    Node *node = root;
+
+    for (auto i : encodedData)
+    {
+        if (i)
+            node = node->right;
+        else
+            node = node->left;
+        if (node->left == nullptr && node->right == nullptr)
+        {
+            char ch = node->ch;
+            decodedData += ch;
+            node = root;
+        }
+    }
+}
+
+void serializeTree(Node *root, std::ofstream &outFile)
+{
+    if (root == nullptr)
+        return;
+
+    if (root->left == nullptr && root->right == nullptr)
+    {
+        char flag = '1';
+        char ch = root->ch;
+        outFile.write((char *)&flag, sizeof(flag));
+        outFile.write((char *)&ch, sizeof(ch));
+    }
+    else
+    {
+        char flag = '0';
+        outFile.write((char *)&flag, sizeof(flag));
+    }
+
+    serializeTree(root->left, outFile);
+    serializeTree(root->right, outFile);
+}
+
+void deserializeTree(Node *root, std::ifstream &inputFile)
+{
+    char ch;
+
+    if (!inputFile.read((char *)&ch, sizeof(ch)) || root == nullptr)
+        return;
+
+    if (ch == '0')
+    {
+        Node *leftNode = new Node('\0', 0, nullptr, nullptr);
+        Node *rightNode = new Node('\0', 0, nullptr, nullptr);
+
+        root->left = leftNode;
+        root->right = rightNode;
+
+        deserializeTree(leftNode, inputFile);
+        deserializeTree(rightNode, inputFile);
+    }
+    else
+    {
+        inputFile.read((char *)&ch, sizeof(ch));
+        root->ch = ch;
+        return;
+    }
+}
+
+void readFile(std::string path, std::vector<bool> &encodedData, Node *root)
+{
+    std::ifstream inputFile(path, std::ios::binary);
+
+    deserializeTree(root, inputFile);
+
+    while (!inputFile.eof())
+    {
+        char ch;
+        inputFile.read(&ch, sizeof(ch));
+        for (int i = 0; i < 8; ++i)
+        {
+            encodedData.push_back((ch >> i) & 1);
+        }
+    }
+}
+
+void writeFile(const std::string outPath, const std::vector<bool> encodedData, Node *root)
+{
+    std::ofstream outFile = std::ofstream(outPath, std::ios::binary);
+
+    serializeTree(root, outFile);
 
     for (size_t i = 0; i <= encodedData.size() / 8; ++i)
     {
@@ -99,7 +184,17 @@ void writeFile(std::string path, std::vector<bool> &encodedData)
     }
 }
 
-void compress(std::string inputPath, std::string outPath)
+void writeFile(const std::string outPath, const std::string decodedData)
+{
+    std::ofstream outFile(outPath, std::ios::binary);
+
+    for (auto i : decodedData)
+    {
+        outFile.write((char *)&i, sizeof(i));
+    }
+}
+
+void compress(const std::string inputPath, const std::string outPath)
 {
     std::string data;
     readFile(inputPath, data);
@@ -117,80 +212,88 @@ void compress(std::string inputPath, std::string outPath)
     std::vector<bool> encodedData;
     encode(data, codesTable, encodedData);
 
-    // for (auto pair : codesTable)
-    //     std::cout << pair.first << "\t" << pair.second << "\n";
-
-    for (auto i : encodedData)
-        std::cout << i;
-
-    writeFile(outPath, encodedData);
+    writeFile(outPath, encodedData, root);
 }
 
 void decompress(std::string inputPath, std::string outPath)
 {
-    std::string data;
-    readFile(inputPath, data);
+    std::vector<bool> encodedData;
+    Node *root = new Node('\0', 0, nullptr, nullptr);
+    std::string decodedData;
+
+    readFile(inputPath, encodedData, root);
+    decode(root, encodedData, decodedData);
+    writeFile(outPath, decodedData);
 }
 
 int main(int argv, char *argc[])
 {
 
-    // if (argv > 1)
-    // {
-    //     bool inputFlag = false, outFlag = false;
-    //     std::string inputPath = "";
-    //     std::string outPath = "";
-    //     std::string type;
+    if (argv > 1)
+    {
+        bool inputFlag = false, outFlag = false;
+        std::string inputPath = "";
+        std::string outPath = "";
+        std::string type;
 
-    //     for (int i = 1; i < argv; i++)
-    //     {
-    //         if (strcmp(argc[i], "--help") || strcmp(argc[i], "-h"))
-    //         {
-    //             std::cout << ""
-    //                       << "\n";
-    //         }
-    //         if (strcmp(argc[i], "--pack") == 0)
-    //         {
-    //             type = "pack";
-    //             inputFlag = outFlag = false;
-    //         }
-    //         if (strcmp(argc[i], "--unpack") == 0)
-    //         {
-    //             type = "unpack";
-    //             inputFlag = outFlag = false;
-    //         }
-    //         if (strcmp(argc[i], "--out") == 0)
-    //         {
-    //             outFlag = true;
-    //             inputFlag = false;
-    //             continue;
-    //         }
-    //         if (strcmp(argc[i], "--files") == 0)
-    //         {
-    //             inputFlag = true;
-    //             outFlag = false;
-    //             continue;
-    //         }
-    //         if (outFlag)
-    //         {
-    //             outPath.assign(argc[i]);
-    //             outPath = argc[i];
-    //         }
-    //         if (inputFlag)
-    //             inputPath = std::string(argc[i]);
-    //     }
-    //     outPath = "./test.huff";
-    //     inputPath = "./test.txt";
-    //     compress(inputPath, outPath);
-    // }
+        for (int i = 1; i < argv; i++)
+        {
+            if (strcmp(argc[i], "--help") || strcmp(argc[i], "-h"))
+            {
+                std::cout << ""
+                          << "\n";
+            }
+            if (strcmp(argc[i], "--pack") == 0)
+            {
+                type = "pack";
+                inputFlag = outFlag = false;
+            }
+            if (strcmp(argc[i], "--unpack") == 0)
+            {
+                type = "unpack";
+                inputFlag = outFlag = false;
+            }
+            if (strcmp(argc[i], "--out") == 0)
+            {
+                outFlag = true;
+                inputFlag = false;
+                continue;
+            }
+            if (strcmp(argc[i], "--files") == 0)
+            {
+                inputFlag = true;
+                outFlag = false;
+                continue;
+            }
+            if (outFlag)
+            {
+                outPath.assign(argc[i]);
+                outPath = argc[i];
+            }
+            if (inputFlag)
+                inputPath = std::string(argc[i]);
+        }
+        if (type == "pack")
+        {
+            compress(inputPath, outPath);
+        }
+        else if (type == "unpack")
+        {
+            decompress(inputPath, outPath);
+        }
+        else
+        {
+            std::cout << "Invalid type" << "\n";
+        }
+    }
 
-    std::string outPath = "./test.huff";
-    std::string inputPath = "./test.txt";
-    compress(inputPath, outPath);
+    // std::string outPath = "./test.huff";
+    // std::string inputPath = "./test.txt";
+    // compress(inputPath, outPath);
 
-    outPath = "./test.txt";
-    inputPath = "./test.huff";
-    decompress(inputPath, outPath);
+    // outPath = "./out.txt";
+    // inputPath = "./test.huff";
+    // decompress(inputPath, outPath);
 
     return 0;
 }
