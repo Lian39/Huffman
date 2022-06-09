@@ -36,7 +36,6 @@ void createFreqsTable(const std::string data, std::multimap<int, char> &freqsTab
 
 void buildTree(std::priority_queue<Node *, std::vector<Node *>, comp> &pq, const std::multimap<int, char> freqsTable)
 {
-
     for (auto pair : freqsTable)
     {
         Node *node = new Node(pair.second, pair.first, nullptr, nullptr);
@@ -203,9 +202,7 @@ void compress(const std::string inputPath, const std::string outPath)
 
     createFreqsTable(data, freqsTable);
     buildTree(pq, freqsTable);
-
     Node *root = pq.top();
-
     createCodesTable(root, "", codesTable);
     encode(data, codesTable, encodedData);
     writeFile(outPath, encodedData, root);
@@ -214,8 +211,8 @@ void compress(const std::string inputPath, const std::string outPath)
 void decompress(std::string inputPath, std::string outPath)
 {
     std::vector<bool> encodedData;
-    Node *root = new Node('\0', 0, nullptr, nullptr);
     std::string decodedData;
+    Node *root = new Node('\0', 0, nullptr, nullptr);
 
     readFile(inputPath, encodedData, root);
     decode(root, encodedData, decodedData);
