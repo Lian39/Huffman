@@ -67,7 +67,7 @@ void createCodesTable(Node *node, std::string code, std::multimap<char, std::str
     createCodesTable(node->right, code + "1", codesTable);
 }
 
-void encode(std::string &data, const std::multimap<char, std::string> codesTable, std::vector<bool> &encodedData)
+void encode(const std::string data, const std::multimap<char, std::string> codesTable, std::vector<bool> &encodedData)
 {
     for (auto ch : data)
     {
