@@ -6,7 +6,7 @@
 #include <queue>
 #include <map>
 
-void readFile(std::string path, std::string &data)
+void readFile(const std::string path, std::string &data)
 {
     std::ifstream inputFile(path, std::ios::binary);
 
@@ -16,8 +16,6 @@ void readFile(std::string path, std::string &data)
         inputFile.read(&ch, sizeof(ch));
         data += ch;
     }
-
-    // data.pop_back();
 }
 
 void createFreqsTable(const std::string data, std::multimap<int, char> &freqsTable)
