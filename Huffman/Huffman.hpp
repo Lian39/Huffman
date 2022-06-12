@@ -1,19 +1,49 @@
+/** @file compressor.hpp */
+
+#include <memory>
+
+/**
+ * @brief Node structure
+ *
+ */
 struct Node
 {
-    char ch;
-    int freq;
-    Node *left, *right;
+    char ch;                           /** Char of the node */
+    int freq;                          /** Summary frquency of the node */
+    std::shared_ptr<Node> left, right; /** Shared pointers to the left and right nodes */
 
-    Node(char symbol, int frequency, Node *left_Node, Node *right_Node) : ch(symbol),
-                                                                          freq(frequency),
-                                                                          left(left_Node),
-                                                                          right(right_Node){};
+    /**
+     * @brief Construct a new Node object
+     *
+     * @param symbol        Char of the node
+     * @param frequency     Summary frquency of the node
+     * @param leftNode      Shared pointers to the left node
+     * @param rightNode     Shared pointers to the right node
+     */
+    Node(char symbol, int frequency, std::shared_ptr<Node> leftNode, std::shared_ptr<Node> rightNode) : ch(symbol),
+                                                                                                        freq(frequency),
+                                                                                                        left(std::move(leftNode)),
+                                                                                                        right(std::move(rightNode)){};
+
+    Node(Node &&) = default;
+
+    Node(const Node &other) = default;
+
+    Node &operator=(const Node &other) = default;
 };
 
+/**
+ * @brief Comparison structure
+ *
+ */
 struct comp
 {
-    bool operator()(Node *left, Node *right)
+    /**
+     * @brief Comparison operator for priority queue
+     *
+     */
+    bool operator()(Node &left, Node &right)
     {
-        return left->freq > right->freq;
+        return left.freq > right.freq;
     }
 };
